@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ default (include "boundary.fullname" .) .Values.boundary.service.name }}
+  labels:
+    app: {{ default (include "boundary.name" .) .Values.boundary.service.name }}
+spec:
+  type: {{ .Values.boundary.service.type }}
+  selector: 
+    app: {{ template "boundary.name" . }}
+  ports:
+    {{- range .Values.boundary.service.ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .port }}
+    {{- end }}

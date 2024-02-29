@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: boundary-config
+data:
+  config.hcl: |-
+    {{ tpl .Values.boundary.config . | nindent 4 | trim }}
+
+
