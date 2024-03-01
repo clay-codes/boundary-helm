@@ -1,12 +1,12 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: postgres-boundary
+  name: {{ .Values.postgres.name }}
   labels:
     app: {{ .Values.postgres.name }}
 spec:
   serviceName: "{{ .Values.postgres.name }}"
-  replicas: {{ .Values.postgres.replicas }}
+  replicas: {{ .Values.boundary.replicas }}
   selector:
     matchLabels:
       app: {{ .Values.postgres.name }}
@@ -24,9 +24,9 @@ spec:
         - name: POSTGRES_USER
           value: {{ .Values.postgres.env.postgresUsr }}
         - name: POSTGRES_PASSWORD
-          value: {{ .Values.postgres.env.postgresPswd}}
+          value: {{ .Values.postgres.env.postgresPswd }}
         ports:
-        - containerPort: 5432
+        - containerPort: {{ .Values.postgres.port }}
         livenessProbe:
           {{- toYaml .Values.postgres.livenessProbe | nindent 10 }}
 {{- if .Values.postgres.pvc.enabled }}

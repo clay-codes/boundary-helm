@@ -17,10 +17,13 @@ boundary:
     pullPolicy: IfNotPresent
   
   setup:
-    # quick POC setup, creates user "admin" with password "password" w/o postgres run "boundary authenticate" to login as root
-    dev: true
+    # dev mode creates root user "admin" with password "password"; run "boundary authenticate" to login
+    # defaults to false to allow for recovery key workflow/bootsrap w/o generated resources
+    # as outlined here https://developer.hashicorp.com/boundary/docs/install-boundary/no-gen-resources
+    dev: false
 
-    # migrateDB is used only after initialization, if you need to update the config, postgres pvc must have been created upon initialization 
+    # migrateDB is used only after initialization if you wish to update the config
+    # postgres pvc must have been created upon initialization (line 163)
     # if updating "root" kms key in config, KMS migration is also required: 
     # - keep the old "root" kms stanza in config along with your desired new "root" kms stanza
     # - change the 'purpose' parameter of this old kms stanza from "root" to "previous-root"
@@ -156,17 +159,18 @@ postgres:
   name: postgres-boundary
   port: 5432
   pvc:
+    # init with "true" to test db migration with helm update of config
     enabled: false
     storage: 200M
   replicas: 1
   # postgres env vars required for bootstrap
   env:
     # POSTGRES_DB
-    postgresDB: "boundary"
+    postgresDB: boundary
     # POSTGRES_USER
-    postgresUsr: "admin"
+    postgresUsr: postgres
     # POSTGRES_PASSWORD
-    postgresPswd: "password"
+    postgresPswd: postgres
   
   livenessProbe:
     exec:

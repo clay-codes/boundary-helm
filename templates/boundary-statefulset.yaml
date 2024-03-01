@@ -62,9 +62,16 @@ spec:
           runAsGroup: 0 # GID
           privileged: true
         imagePullPolicy: {{ .Values.boundary.image.pullPolicy }}
+        env:
+        - name: BOUNDARY_PG_URL
+          value: "postgresql://{{ .Values.postgres.env.postgresUsr }}:{{ .Values.postgres.env.postgresPswd }}@{{ .Values.postgres.name }}:5432/{{ .Values.postgres.env.postgresDB }}?sslmode=disable"
+        - name: HOSTNAME
+          value: "boundary"
         args:
           {{- if .Values.boundary.setup.dev}}
           - "dev"
+          - "-database-url"
+          - "env://BOUNDARY_PG_URL"
           {{- else }}
           - "server"
           - "-config"
@@ -72,11 +79,6 @@ spec:
         volumeMounts:
         - name: boundary-config
           mountPath: "/boundary"
-        env:
-        - name: BOUNDARY_PG_URL
-          value: "postgresql://{{ .Values.postgres.env.postgresUsr }}:{{ .Values.postgres.env.postgresPswd }}@{{ .Values.postgres.name }}:5432/boundary?sslmode=disable"
-        - name: HOSTNAME
-          value: "boundary"
         {{ if .Values.boundary.image.licenseSecretName }}
         - name: BOUNDARY_LICENSE
           valueFrom:
@@ -88,8 +90,8 @@ spec:
         - containerPort: 9200
         - containerPort: 9201
         - containerPort: 9202
-        {{- end }}
         livenessProbe:
           {{- toYaml .Values.boundary.livenessProbe | nindent 10 }}
         readinessProbe:
           {{- toYaml .Values.boundary.readinessProbe | nindent 10 }}
+        {{- end }}
