@@ -1,25 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.postgres.podName }}
+  name: {{ .Values.postgres.name }}
   labels:
-    app: postgres-boundary
+    app: {{ .Values.postgres.name }}
 spec:
   replicas: {{ .Values.postgres.replicas }}
   selector:
     matchLabels:
-      app: postgres-boundary
+      app: {{ .Values.postgres.name }}
   template:
     metadata:
       labels:
-        app: postgres-boundary
+        app: {{ .Values.postgres.name }}
     spec:
       containers:
       - name: postgres
         image: postgres
         env:
-        {{- toYaml .Values.postgres.env | indent 8 }}
+        {{- range .Values.postgres.env }}
+        - name: {{ . }}
+          value: {{ . | quote }}
+        {{- end }}
         ports:
         - containerPort: 5432
         livenessProbe:
-          {{- toYaml .Values.postgres.livenessProbe | indent 10 }}
+          {{- toYaml .Values.postgres.livenessProbe | nindent 12 }}

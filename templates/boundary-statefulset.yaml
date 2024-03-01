@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{template "boundary.name" .}}
+  labels:
+    app: {{template "boundary.name" .}}
+spec:
+  serviceName: "{{template "boundary.name" .}}"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{template "boundary.name" .}}
+  template:
+    metadata:
+      labels:
+        app: {{template "boundary.name" .}}
+    spec:
+      volumes:
+      - name: boundary-config
+        configMap:
+          name: boundary-config
+      {{- if not .Values.boundary.setup.dev}}
+      initContainers:
+      - name: boundary-init
+        image: "{{ .Values.boundary.image.repository }}{{ if .Values.boundary.image.licenseSecretName }}-enterprise{{ end }}:{{ .Values.boundary.image.tag }}"
+        imagePullPolicy: {{ .Values.boundary.image.pullPolicy }}
+        args:
+        - "database"
+        {{- if .Values.boundary.setup.migrateDB }}
+        - "migrate"
+        {{- else }}
+        - "init"
+        - "-skip-auth-method-creation"
+        - "-skip-host-resources-creation"
+        - "-skip-scopes-creation"
+        - "-skip-target-creation"
+        - "-skip-initial-login-role-creation"
+        {{- end }}
+        - "-config"
+        - "/boundary/config.hcl"
+        volumeMounts:
+        - name: boundary-config
+          mountPath: "/boundary"
+        env:
+        - name: BOUNDARY_PG_URL
+          value: "postgresql://{{ .Values.postgres.env.postgresUsr }}:{{ .Values.postgres.env.postgresPswd }}@{{ .Values.postgres.name }}:5432/boundary?sslmode=disable"
+        - name: HOSTNAME
+          value: "boundary"
+        {{ if .Values.boundary.image.licenseSecretName }}
+        - name: BOUNDARY_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ default "boundary-license" .Values.boundary.image.licenseSecretName }}
+              key: {{ default "license" .Values.boundary.image.licenseSecretKey }}
+        {{ end }}
+      {{- end }}
+      containers:
+      - name: boundary
+        image: "{{ .Values.boundary.image.repository }}{{ if .Values.boundary.image.licenseSecretName }}-enterprise{{ end }}:{{ .Values.boundary.image.tag }}"
+        securityContext:
+          runAsUser: 0  # UID
+          runAsGroup: 0 # GID
+          privileged: true
+        imagePullPolicy: {{ .Values.boundary.image.pullPolicy }}
+        args:
+          {{- if .Values.boundary.setup.dev}}
+          - "dev"
+          {{- else }}
+          - "server"
+          - "-config"
+          - "/boundary/config.hcl"
+        volumeMounts:
+        - name: boundary-config
+          mountPath: "/boundary"
+        env:
+        - name: BOUNDARY_PG_URL
+          value: "postgresql://{{ .Values.postgres.env.postgresUsr }}:{{ .Values.postgres.env.postgresPswd }}@{{ .Values.postgres.name }}:5432/boundary?sslmode=disable"
+        - name: HOSTNAME
+          value: "boundary"
+        {{ if .Values.boundary.image.licenseSecretName }}
+        - name: BOUNDARY_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ default "boundary-license" .Values.boundary.image.licenseSecretName }}
+              key: {{ default "license" .Values.boundary.image.licenseSecretKey }}
+        {{ end }}
+        ports:
+        - containerPort: 9200
+        - containerPort: 9201
+        - containerPort: 9202
+        {{- end }}
+        livenessProbe:
+          {{- toYaml .Values.boundary.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.boundary.readinessProbe | nindent 10 }}

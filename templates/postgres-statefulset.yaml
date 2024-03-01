@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-boundary
+  labels:
+    app: {{ .Values.postgres.name }}
+spec:
+  serviceName: "{{ .Values.postgres.name }}"
+  replicas: {{ .Values.postgres.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.postgres.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.postgres.name }}
+    spec:
+      containers:
+      - name: postgres
+        image: postgres
+        env:
+        - name: POSTGRES_DB
+          value: {{ .Values.postgres.env.postgresDB }}
+        - name: POSTGRES_USER
+          value: {{ .Values.postgres.env.postgresUsr }}
+        - name: POSTGRES_PASSWORD
+          value: {{ .Values.postgres.env.postgresPswd}}
+        ports:
+        - containerPort: 5432
+        livenessProbe:
+          {{- toYaml .Values.postgres.livenessProbe | nindent 10 }}
+{{- if .Values.postgres.pvc.enabled }}
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: {{ .Values.postgres.pvc.storage }}
+{{- end }}

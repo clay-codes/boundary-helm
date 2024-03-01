@@ -9,8 +9,9 @@ spec:
   selector: 
     app: {{ template "boundary.name" . }}
   ports:
-    {{- range .Values.boundary.service.ports }}
-    - name: {{ .name }}
-      port: {{ .port }}
-      targetPort: {{ .port }}
-    {{- end }}
+  {{- range .Values.boundary.service.ports }}
+  - name: {{ .name }}
+    port: {{ .port }}
+    targetPort: {{ .port }}
+  {{- end }}
+
