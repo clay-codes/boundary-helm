@@ -21,6 +21,3 @@
 .idea/
 *.tmproj
 .vscode/
-
-templates/boundary-deployment.yaml
-templates/postgres-deployment.yaml
