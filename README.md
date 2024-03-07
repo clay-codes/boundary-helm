@@ -1,5 +1,5 @@
 #### Steps
-with minikube cluster running:
+with cluster running:
 ```
 helm install boundary boundary
 ```
