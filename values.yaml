@@ -7,7 +7,7 @@ boundary:
     # TO ENABLE ENTERPRISE
     # uncomment license values if you have a k8s secret for the boundary enterprise license (template will auto update image to enterprise)
     # example secret creation:
-    # kubectl create secret generic boundary-license --from-literal=license='your-license-string'
+    # kubectl create secret generic boundary-license --from-literal=license=${BOUNDARY_LICENSE}
     # note here ^ the secret name is 'boundary-license' and the key name is 'license'
   image:
     licenseSecretName: boundary-license
@@ -20,7 +20,7 @@ boundary:
     # dev mode creates root user "admin" with password "password"; run "boundary authenticate" to login
     # defaults to true for quick poc; set to false to allow for recovery key workflow/bootsrap w/o generated resources
     # as outlined here https://developer.hashicorp.com/boundary/docs/install-boundary/no-gen-resources
-    dev: false
+    dev: true
 
     # migrateDB is used only after initialization if you wish to update the config
     # postgres pvc must have been created upon initialization (line 163)
