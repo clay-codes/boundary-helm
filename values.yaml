@@ -4,21 +4,21 @@
 # if quick POC is desired instead, set dev to "true" below
 boundary: 
   replicas: 1
-
-  image:
+    # TO ENABLE ENTERPRISE
     # uncomment license values if you have a k8s secret for the boundary enterprise license (template will auto update image to enterprise)
     # example secret creation:
     # kubectl create secret generic boundary-license --from-literal=license='your-license-string'
     # note here ^ the secret name is 'boundary-license' and the key name is 'license'
-    # licenseSecretName: boundary-license
-    # licenseSecretKey: license
+  image:
+    licenseSecretName: boundary-license
+    licenseSecretKey: license
     repository: hashicorp/boundary
     tag: latest
     pullPolicy: IfNotPresent
   
   setup:
     # dev mode creates root user "admin" with password "password"; run "boundary authenticate" to login
-    # defaults to false to allow for recovery key workflow/bootsrap w/o generated resources
+    # defaults to true for quick poc; set to false to allow for recovery key workflow/bootsrap w/o generated resources
     # as outlined here https://developer.hashicorp.com/boundary/docs/install-boundary/no-gen-resources
     dev: false
 
@@ -168,5 +168,26 @@ postgres:
     exec:
       command: ["psql", "-w", "-U", "postgres", "-d", "boundary", "-c", "SELECT 1"]
 
-
-
+# vault subchart included with override values for dev mode and injector; see vault helm repo for complete values.yaml
+vault:
+  global:
+    enabled: false
+  server:
+    enabled: false
+    enterpriseLicense:
+      # The name of the Kubernetes secret that holds the enterprise license. The
+      # secret must be in the same namespace that Vault is installed into.
+      secretName: "vault-license"
+      # The key within the Kubernetes secret that holds the enterprise license.
+      secretKey: "license"
+    image:
+      # change to "hashicorp/vault" if no license supplied
+      repository: "hashicorp/vault-enterprise"
+      tag: "latest"
+      # Overrides the default Image Pull Policy
+      pullPolicy: IfNotPresent
+    dev:
+      enabled: true
+      devRootToken: "root"
+  injector:
+    enabled: false

@@ -14,6 +14,8 @@ spec:
     metadata:
       labels:
         app: {{template "boundary.name" .}}
+      annotations:
+      {{- toYaml .Values.boundary.podAnnotations | nindent 8 }} 
     spec:
       volumes:
       - name: boundary-config
@@ -67,6 +69,13 @@ spec:
           value: "postgresql://{{ .Values.postgres.env.postgresUsr }}:{{ .Values.postgres.env.postgresPswd }}@{{ .Values.postgres.name }}:5432/{{ .Values.postgres.env.postgresDB }}?sslmode=disable"
         - name: HOSTNAME
           value: "boundary"
+        {{ if .Values.boundary.image.licenseSecretName }}
+        - name: BOUNDARY_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ default "boundary-license" .Values.boundary.image.licenseSecretName }}
+              key: {{ default "license" .Values.boundary.image.licenseSecretKey }}
+        {{ end }}
         args:
           {{- if .Values.boundary.setup.dev}}
           - "dev"
@@ -79,13 +88,6 @@ spec:
         volumeMounts:
         - name: boundary-config
           mountPath: "/boundary"
-        {{ if .Values.boundary.image.licenseSecretName }}
-        - name: BOUNDARY_LICENSE
-          valueFrom:
-            secretKeyRef:
-              name: {{ default "boundary-license" .Values.boundary.image.licenseSecretName }}
-              key: {{ default "license" .Values.boundary.image.licenseSecretKey }}
-        {{ end }}
         ports:
         - containerPort: 9200
         - containerPort: 9201

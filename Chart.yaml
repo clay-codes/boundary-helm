@@ -22,3 +22,7 @@ version: 0.1.0
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
 appVersion: "1.16.0"
+dependencies:
+  - name: vault
+    version: "0.28.0"  # Specify the version you want to use
+    repository: "https://helm.releases.hashicorp.com"
