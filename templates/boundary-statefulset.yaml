@@ -24,7 +24,15 @@ spec:
       {{- if not .Values.boundary.setup.dev}}
       initContainers:
       - name: boundary-init
-        image: "{{ .Values.boundary.image.repository }}{{ if .Values.boundary.image.licenseSecretName }}-enterprise{{ end }}:{{ .Values.boundary.image.tag }}"
+        {{ if .Values.boundary.image.licenseSecretName }}
+        {{ if or (eq .Values.boundary.image.tag "latest") (hasSuffix "-ent" .Values.boundary.image.tag) }}
+        image: "{{ .Values.boundary.image.repository }}-enterprise:{{ .Values.boundary.image.tag }}"
+        {{ else }}
+        image: "{{ .Values.boundary.image.repository }}-enterprise:{{ .Values.boundary.image.tag }}-ent"
+        {{ end }}
+        {{ else }}
+        image: "{{ .Values.boundary.image.repository }}:{{ trimSuffix "-ent" .Values.boundary.image.tag }}"
+        {{ end }}
         imagePullPolicy: {{ .Values.boundary.image.pullPolicy }}
         args:
         - "database"
@@ -58,7 +66,15 @@ spec:
       {{- end }}
       containers:
       - name: boundary
-        image: "{{ .Values.boundary.image.repository }}{{ if .Values.boundary.image.licenseSecretName }}-enterprise{{ end }}:{{ .Values.boundary.image.tag }}"
+        {{ if .Values.boundary.image.licenseSecretName }}
+        {{ if or (eq .Values.boundary.image.tag "latest") (hasSuffix "-ent" .Values.boundary.image.tag) }}
+        image: "{{ .Values.boundary.image.repository }}-enterprise:{{ .Values.boundary.image.tag }}"
+        {{ else }}
+        image: "{{ .Values.boundary.image.repository }}-enterprise:{{ .Values.boundary.image.tag }}-ent"
+        {{ end }}
+        {{ else }}
+        image: "{{ .Values.boundary.image.repository }}:{{ trimSuffix "-ent" .Values.boundary.image.tag }}"
+        {{ end }}
         securityContext:
           runAsUser: 0  # UID
           runAsGroup: 0 # GID
@@ -88,6 +104,7 @@ spec:
         volumeMounts:
         - name: boundary-config
           mountPath: "/boundary"
+        {{- end }}
         ports:
         - containerPort: 9200
         - containerPort: 9201
@@ -96,4 +113,3 @@ spec:
           {{- toYaml .Values.boundary.livenessProbe | nindent 10 }}
         readinessProbe:
           {{- toYaml .Values.boundary.readinessProbe | nindent 10 }}
-        {{- end }}

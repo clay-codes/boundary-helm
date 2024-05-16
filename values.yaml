@@ -5,12 +5,13 @@
 boundary: 
   replicas: 1
     # TO ENABLE ENTERPRISE
-    # uncomment license values if you have a k8s secret for the boundary enterprise license (template will auto update image to enterprise)
+    # set licenseSecretName to k8s secret for the boundary enterprise license 
+    # template will auto update repo to enterprise, and auto append -ent to tag, regardless if tag already has -ent suffix
     # example secret creation:
     # kubectl create secret generic boundary-license --from-literal=license=${BOUNDARY_LICENSE}
-    # note here ^ the secret name is 'boundary-license' and the key name is 'license'
+    # with 'boundary-license' being the value for licenseSecretName etc
   image:
-    licenseSecretName: boundary-license
+    licenseSecretName: "boundary-license"
     licenseSecretKey: license
     repository: hashicorp/boundary
     tag: latest
@@ -20,7 +21,7 @@ boundary:
     # dev mode creates root user "admin" with password "password"; run "boundary authenticate" to login
     # defaults to true for quick poc; set to false to allow for recovery key workflow/bootsrap w/o generated resources
     # as outlined here https://developer.hashicorp.com/boundary/docs/install-boundary/no-gen-resources
-    dev: true
+    dev: false
 
     # migrateDB is used only after initialization if you wish to update the config
     # postgres pvc must have been created upon initialization (line 163)
@@ -87,17 +88,17 @@ boundary:
       key_id = "global_bsr"
     }
 
-    
-    
-  livenessProbe:
-    httpGet:
-      path: "/"
-      port: 9200
-  
-  readinessProbe:
-    httpGet:
-      path: "/"
-      port: 9200
+      
+  livenessProbe: null
+    # httpGet:
+    #   path: "/"
+    #   port: 9200
+
+  readinessProbe: null
+    # enabled: false
+    # httpGet:
+    #   path: "/"
+    #   port: 9200
 
 
   serviceAccount:
