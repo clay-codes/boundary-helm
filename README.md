@@ -1,16 +1,13 @@
-### Abstract
-
+## Abstract
 Helm chart to deploy a Boundary controller and its Postgres back end with optional PVC in either enterprise or dev mode; includes Vault sub chart for optional dev server/Agent injector.
 
-### Prerequisites
-
+## Prerequisites
 - Minikube, Kind, etc, cluster running
 
 - Helm installed
 
 
-### Procedure
-
+## Procedure
 - clone & cd into repo
 
 - have Minikube or Kind cluster running
@@ -27,7 +24,7 @@ Helm chart to deploy a Boundary controller and its Postgres back end with option
 
 - when not in dev mode, must go through recovery KMS workflow to set up users, accounts, targets, etc
 
-#### Example Non-Ent Installation
+**Example Non-Ent Installation**
 ```
 git clone https://github.com/clay-codes/boundary-helm.git
 cd boundary-helm
@@ -35,10 +32,9 @@ helm install boundary .
 kubectl get pods
 ```
 
-### Additional Configurations
+## Additional Configurations
 
-#### **Enterprise:**
-
+### **Enterprise**
 - disabled by default
 
 - create K8s Boundary license secret
@@ -59,8 +55,8 @@ kubectl create secret generic boundary-license --from-literal=license=${BOUNDARY
 helm install boundary . --set boundary.image.licenseSecretName=boundary-license
 ```
 
-#### **Vault**
 
+### **Vault**
 - disabled by default
 
 - sub-chart of official Vault helm
@@ -83,13 +79,12 @@ kubectl create secret generic vault-license --from-literal=license=${VAULT_LICEN
 helm install boundary . --set vault.server.enabled=true,vault.server.enterpriseLicense.secretName=vault-license
 ```
 
-#### __DB migration:__
+### __DB migration__
+- migration required to upgrade Boundary version, for root KMS migration, any mod to config, etc
 
 - turn off dev mode
 
 - (optional) enable PVC `postgres.pvc.enabled=true`
-
-- migration required to upgrade Boundary version, for root KMS migration, any mod to config, etc
 
 - install boundary: `helm install boundary .` or use inline method below if testing migration via boundary version upgrade 
 
@@ -104,8 +99,7 @@ k get pod boundary-0 -oyaml | grep image
 helm upgrade boundary . --set boundary.image.tag=latest,boundary.setup.migrateDB=true
 ```
 
-#### **Features Coming Soon:**
-
+#### **Features Coming Soon**
 - worker node
 
 - upstream workers
