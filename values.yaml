@@ -21,7 +21,7 @@ boundary:
     # dev mode creates root user "admin" with password "password"; run "boundary authenticate" to login
     # defaults to true for quick poc; set to false to allow for recovery key workflow/bootsrap w/o generated resources
     # as outlined here https://developer.hashicorp.com/boundary/docs/install-boundary/no-gen-resources
-    dev: false
+    dev: true
 
     # migrateDB is used only after initialization if you wish to update the config
     # postgres pvc must have been created upon initialization (line 163)
@@ -178,7 +178,7 @@ vault:
     enterpriseLicense:
       # The name of the Kubernetes secret that holds the enterprise license. The
       # secret must be in the same namespace that Vault is installed into.
-      secretName: "vault-license"
+      secretName: ""
       # The key within the Kubernetes secret that holds the enterprise license.
       secretKey: "license"
     image:
