@@ -22,20 +22,21 @@ boundary:
     # defaults to true for quick poc; set to false to allow for below 
     dev: false
     
-    # setting to false as will require recovery key (kms) workflow and bootsrap w/o any resources
-    # kms workflow outlined here https://developer.hashicorp.com/boundary/docs/install-boundary/no-gen-resources 
-    # set to true to start in non-dev with all init options from here: 
-    # https://developer.hashicorp.com/boundary/docs/commands/database/init#init-options 
-    # must tail logs of init container to get credentials: 
-    # kubectl logs boundary-controller-0 boundary-init -f
-    withResources: true
-
     # migrateDB is used only after initialization if you wish to update the config
     # postgres pvc must have been created upon initialization (line 163)
     # if updating "root" kms key in config, KMS migration is also required: 
     # - keep the old "root" kms stanza in config along with your desired new "root" kms stanza
     # - change the 'purpose' parameter of this old kms stanza from "root" to "previous-root"
     migrateDB: false
+    
+    # setting to false as will require recovery key (kms) workflow and bootsrap w/o any resources
+    # kms workflow outlined here https://developer.hashicorp.com/boundary/docs/install-boundary/no-gen-resources 
+    # set to true to start in non-dev with all init options from here: 
+    # https://developer.hashicorp.com/boundary/docs/commands/database/init#init-options 
+    # must tail logs of init container to get credentials: 
+    # kubectl logs boundary-controller-0 boundary-init -f
+    withResources: false
+
   
   config: |
     disable_mlock = true
