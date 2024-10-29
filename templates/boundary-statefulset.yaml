@@ -18,9 +18,11 @@ spec:
       {{- toYaml .Values.boundary.podAnnotations | nindent 8 }} 
     spec:
       volumes:
-      - name: boundary-config
+      - name: boundary-cm
         configMap:
-          name: boundary-config
+          name: boundary-cm
+      - name: boundary-config
+        emptyDir: {}
       {{- if not .Values.boundary.setup.dev}}
       initContainers:
       - name: boundary-init
@@ -34,21 +36,34 @@ spec:
         image: "{{ .Values.boundary.image.repository }}:{{ trimSuffix "-ent" .Values.boundary.image.tag }}"
         {{ end }}
         imagePullPolicy: {{ .Values.boundary.image.pullPolicy }}
+        command: ["sh", "-c"]
         args:
-        - "database"
-        {{- if .Values.boundary.setup.migrateDB }}
-        - "migrate"
-        {{- else }}
-        - "init"
-        - "-skip-auth-method-creation"
-        - "-skip-host-resources-creation"
-        - "-skip-scopes-creation"
-        - "-skip-target-creation"
-        - "-skip-initial-login-role-creation"
-        {{- end }}
-        - "-config"
-        - "/boundary/config.hcl"
+          - |
+            # Copy the configuration file from immutable to writable location
+            cat /immutable-config/config.hcl > /boundary/config.hcl
+            chmod 644 /boundary/config.hcl
+            
+            # wait for pg pod
+            sleep 10
+            
+            # Run the boundary command with appropriate arguments
+            boundary database \
+            {{- if .Values.boundary.setup.migrateDB }}
+              migrate \
+            {{- else }}
+              init \
+              {{- if not .Values.boundary.setup.withResources }}
+                -skip-auth-method-creation \
+                -skip-host-resources-creation \
+                -skip-scopes-creation \
+                -skip-target-creation \
+                -skip-initial-login-role-creation \
+              {{- end }}
+            {{- end }}
+            -config /boundary/config.hcl
         volumeMounts:
+        - name: boundary-cm
+          mountPath: "/immutable-config/"
         - name: boundary-config
           mountPath: "/boundary"
         env:
@@ -75,10 +90,6 @@ spec:
         {{ else }}
         image: "{{ .Values.boundary.image.repository }}:{{ trimSuffix "-ent" .Values.boundary.image.tag }}"
         {{ end }}
-        securityContext:
-          runAsUser: 0  # UID
-          runAsGroup: 0 # GID
-          privileged: true
         imagePullPolicy: {{ .Values.boundary.image.pullPolicy }}
         env:
         - name: BOUNDARY_PG_URL
@@ -108,7 +119,6 @@ spec:
         ports:
         - containerPort: 9200
         - containerPort: 9201
-        - containerPort: 9202
         - containerPort: 9203
         livenessProbe:
           {{- toYaml .Values.boundary.livenessProbe | nindent 10 }}
