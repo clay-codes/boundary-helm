@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{template "boundary.name" .}}
+  name: boundary-controller
   labels:
-    app: {{template "boundary.name" .}}
+    app: boundary-controller
 spec:
-  serviceName: "{{template "boundary.name" .}}"
+  serviceName: {{ .Values.boundary.service.name }}
   replicas: 1
   selector:
     matchLabels:
-      app: {{template "boundary.name" .}}
+      app: boundary-controller
   template:
     metadata:
       labels:
-        app: {{template "boundary.name" .}}
+        app: boundary-controller
       annotations:
       {{- toYaml .Values.boundary.podAnnotations | nindent 8 }} 
     spec:
@@ -109,6 +109,7 @@ spec:
         - containerPort: 9200
         - containerPort: 9201
         - containerPort: 9202
+        - containerPort: 9203
         livenessProbe:
           {{- toYaml .Values.boundary.livenessProbe | nindent 10 }}
         readinessProbe:

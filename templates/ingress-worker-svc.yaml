@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.boundary.worker.ingress.service.name }}
+  labels:
+    app: {{ .Values.boundary.worker.ingress.service.name }}
+spec:
+  type: {{ .Values.boundary.service.type }}
+  selector: 
+    app: boundary-ingress-worker
+  ports:
+  {{- range .Values.boundary.worker.ingress.service.ports }}
+  - name: {{ .name }}
+    port: {{ .port }}
+    targetPort: {{ .port }}
+  {{- end }}

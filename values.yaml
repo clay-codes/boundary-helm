@@ -39,24 +39,24 @@ boundary:
       database {
         url = "env://BOUNDARY_PG_URL"
       }
-      public_cluster_addr = "localhost"
-
+      public_cluster_addr = "boundary-controller.default.svc.cluster.local:9201"
     }
 
+
     listener "tcp" {
-      address = "0.0.0.0"
+      address = "0.0.0.0:9200"
       purpose = "api"
       tls_disable = true
     }
 
     listener "tcp" {
-      address = "0.0.0.0"
+      address = "0.0.0.0:9201"
       purpose = "cluster"
       tls_disable = true
     }
 
     listener "tcp" {
-      address = "0.0.0.0"
+      address = "0.0.0.0:9203"
       purpose = "proxy"
       tls_disable = true
     }
@@ -121,7 +121,9 @@ boundary:
     - name: cluster
       port: 9201
     - name: data
-      port: 9202  
+      port: 9202
+    - name: postgres
+      port: 5432
 
   ingress:
     enabled: false
@@ -147,6 +149,81 @@ boundary:
     limits:
       cpu: "500m"  # 0.5 CPU cores
       memory: "1Gi"  # 1 GiB of memory  
+  
+  worker:
+    ingress:
+      enabled: true
+      replicas: 1
+      config: |
+        # disable memory from being swapped to disk
+        disable_mlock = true
+
+        # listener denoting this is a worker proxy
+        listener "tcp" {
+          address = "0.0.0.0:9202"
+          purpose = "proxy"
+        }
+
+        # worker block for configuring the specifics of the
+        # worker service
+        worker {
+          name = "ingress-worker"
+          public_addr = "$HOSTNAME"
+          initial_upstreams = ["boundary-controller.default.svc.cluster.local:9201"]
+          tags {
+            type = ["worker1", "upstream"]
+          }
+        }
+
+        # Events (logging) configuration. This
+        # configures logging for ALL events to both
+        # stderr and a file at /var/log/boundary/<boundary_use>.log
+        events {
+          audit_enabled       = true
+          sysevents_enabled   = true
+          observations_enable = true
+          sink "stderr" {
+            name = "all-events"
+            description = "All events sent to stderr"
+            event_types = ["*"]
+            format = "cloudevents-json"
+          }
+          sink {
+            name = "file-sink"
+            description = "All events sent to a file"
+            event_types = ["*"]
+            format = "cloudevents-json"
+            file {
+              path = "/var/log/boundary"
+              file_name = "ingress-worker.log"
+            }
+            audit_config {
+              audit_filter_overrides {
+                sensitive = "redact"
+                secret    = "redact"
+              }
+            }
+          }
+        }
+
+        # kms block for encrypting the authentication material
+        kms "aead" {
+          purpose = "worker-auth"
+          aead_type = "aes-gcm"
+          key = "8fZBjCUfN0TzjEGLQldGY4+iE9AkOvCfjh7+p0GtRBQ="
+          key_id = "global_worker-auth"
+        }
+      service:
+        type: ClusterIP
+        name: ingress-worker-svc
+        ports:
+        - name: api
+          port: 9200
+        - name: cluster
+          port: 9201
+        - name: data
+          port: 9202
+
 
 postgres:
   name: postgres-boundary
