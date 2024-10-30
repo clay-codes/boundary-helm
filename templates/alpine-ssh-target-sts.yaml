@@ -1,0 +1,49 @@
+{{- if .Values.target.ssh.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ssh-target
+  labels:
+    app: ssh-target
+spec:
+  serviceName: ssh-target
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ssh-target
+  template:
+    metadata:
+      labels:
+        app: ssh-target
+    spec:
+      securityContext:
+        fsGroup: 1000
+      volumes:
+      - name: log-volume
+        emptyDir: {}
+      containers:
+      - name: ssh-psql
+        image: sickp/alpine-sshd  # Base image with SSH installed
+        env:
+        - name: POSTGRES_HOST
+          value: postgres-boundary
+        - name: POSTGRES_USER
+          value: {{ .Values.postgres.env.postgresUsr }}
+        - name: POSTGRES_PASSWORD
+          value: {{ .Values.postgres.env.postgresPswd }}
+        - name: POSTGRES_DB
+          value: {{ .Values.postgres.env.postgresDB }}
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            apk add --no-cache postgresql-client && ssh-keygen -A
+            echo "alias psql0='PGPASSWORD=\$POSTGRES_PASSWORD psql -h \$POSTGRES_HOST -U \$POSTGRES_USER -d \$POSTGRES_DB'" > ~/.profile
+            echo "psql connection string has been saved as alias 'psql0'; run '. ~/.profile' then 'psql0' to connect; view via 'alias psql0'"
+            /usr/sbin/sshd -D
+        ports:
+        - containerPort: 22
+          name: ssh
+        volumeMounts:
+        - name: log-volume
+          mountPath: /var/log/myapp
+{{- end }}

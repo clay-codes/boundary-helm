@@ -1,0 +1,9 @@
+{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.intermediate.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: intermediate-cm
+data:
+  intermediate-config.hcl: |-
+    {{ tpl .Values.boundary.worker.intermediate.config . | nindent 4 | trim }}
+{{- end }}

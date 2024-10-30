@@ -1,0 +1,14 @@
+{{- if .Values.target.ssh.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh-target
+spec:
+  selector:
+    app: ssh-target
+  ports:
+    - protocol: TCP
+      port: 22
+      targetPort: 22
+  type: ClusterIP
+{{- end }}

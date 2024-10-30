@@ -1,27 +1,27 @@
-{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.ingress.enabled }}
+{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.egress.enabled }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: ingress-worker
+  name: egress-worker
   labels:
-    app: boundary-ingress-worker
+    app: boundary-egress-worker
 spec:
-  serviceName: ingress-worker
-  replicas: {{ .Values.boundary.worker.ingress.replicas }}
+  serviceName: egress-worker
+  replicas: {{ .Values.boundary.worker.egress.replicas }}
   selector:
     matchLabels:
-      app: boundary-ingress-worker
+      app: boundary-egress-worker
   template:
     metadata:
       labels:
-        app: boundary-ingress-worker
+        app: boundary-egress-worker
       annotations:
       {{- toYaml .Values.boundary.podAnnotations | nindent 8 }} 
     spec:
       volumes:
-      - name: boundary-ingress-config
+      - name: boundary-egress-config
         configMap:
-          name: ingress-cm
+          name: egress-cm
       - name: boundary-logs
         emptyDir: {}
       containers:
@@ -35,6 +35,11 @@ spec:
         {{ else }}
         image: "{{ .Values.boundary.image.repository }}:{{ trimSuffix "-ent" .Values.boundary.image.tag }}"
         {{ end }}
+        securityContext:
+          runAsUser: 0  # UID
+          runAsGroup: 0 # GID
+          privileged: true
+          fsGroup: 0  
         imagePullPolicy: {{ .Values.boundary.image.pullPolicy }}
         env:
         {{ if .Values.boundary.image.licenseSecretName }}
@@ -47,13 +52,12 @@ spec:
         args:
           - "server"
           - "-config"
-          - "/boundary/ingress-config.hcl"
+          - "/boundary/egress-config.hcl"
         volumeMounts:
-        - name: boundary-ingress-config
+        - name: boundary-egress-config
           mountPath: "/boundary"
         - name: boundary-logs
           mountPath: /var/log/boundary
         ports:
         - containerPort: 9202
-
 {{- end }}

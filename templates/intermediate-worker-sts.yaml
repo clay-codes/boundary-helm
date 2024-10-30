@@ -1,27 +1,27 @@
-{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.ingress.enabled }}
+{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.intermediate.enabled }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: ingress-worker
+  name: intermediate-worker
   labels:
-    app: boundary-ingress-worker
+    app: boundary-intermediate-worker
 spec:
-  serviceName: ingress-worker
-  replicas: {{ .Values.boundary.worker.ingress.replicas }}
+  serviceName: intermediate-worker
+  replicas: {{ .Values.boundary.worker.intermediate.replicas }}
   selector:
     matchLabels:
-      app: boundary-ingress-worker
+      app: boundary-intermediate-worker
   template:
     metadata:
       labels:
-        app: boundary-ingress-worker
+        app: boundary-intermediate-worker
       annotations:
       {{- toYaml .Values.boundary.podAnnotations | nindent 8 }} 
     spec:
       volumes:
-      - name: boundary-ingress-config
+      - name: boundary-intermediate-config
         configMap:
-          name: ingress-cm
+          name: intermediate-cm
       - name: boundary-logs
         emptyDir: {}
       containers:
@@ -47,9 +47,9 @@ spec:
         args:
           - "server"
           - "-config"
-          - "/boundary/ingress-config.hcl"
+          - "/boundary/intermediate-config.hcl"
         volumeMounts:
-        - name: boundary-ingress-config
+        - name: boundary-intermediate-config
           mountPath: "/boundary"
         - name: boundary-logs
           mountPath: /var/log/boundary

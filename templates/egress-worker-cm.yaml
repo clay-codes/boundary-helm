@@ -1,0 +1,9 @@
+{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.egress.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: egress-cm
+data:
+  egress-config.hcl: |-
+    {{ tpl .Values.boundary.worker.egress.config . | nindent 4 | trim }}
+{{- end }}

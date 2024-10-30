@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.boundary.service.name }}
+  name: boundary-controller
   labels:
-    app: {{ .Values.boundary.service.name }}
+    app: boundary-controller
 spec:
   type: {{ .Values.boundary.service.type }}
   selector: 

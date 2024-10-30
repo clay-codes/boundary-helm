@@ -28,14 +28,14 @@ boundary:
     # - keep the old "root" kms stanza in config along with your desired new "root" kms stanza
     # - change the 'purpose' parameter of this old kms stanza from "root" to "previous-root"
     migrateDB: false
-    
+
     # setting to false as will require recovery key (kms) workflow and bootsrap w/o any resources
     # kms workflow outlined here https://developer.hashicorp.com/boundary/docs/install-boundary/no-gen-resources 
     # set to true to start in non-dev with all init options from here: 
     # https://developer.hashicorp.com/boundary/docs/commands/database/init#init-options 
     # must tail logs of init container to get credentials: 
     # kubectl logs boundary-controller-0 boundary-init -f
-    withResources: false
+    withResources: true
 
   
   config: |
@@ -47,7 +47,7 @@ boundary:
       database {
         url = "env://BOUNDARY_PG_URL"
       }
-      public_cluster_addr = "boundary-controller.default.svc.cluster.local:9201"
+      public_cluster_addr = "boundary-controller:9201"
     }
 
 
@@ -89,6 +89,8 @@ boundary:
       key = "8fZBjCUfN0TzjEGLQldGY4+iE9AkOvCfjh7+p0GtRBQ="
       key_id = "global_recovery"
     }
+
+    # needed for session recording
     kms "aead" {
       purpose = "bsr"
       aead_type = "aes-gcm"
@@ -102,8 +104,8 @@ boundary:
         - sh
         - -c
         - "nc -zv postgres-boundary 5432"
-    initialDelaySeconds: 5
-    periodSeconds: 5
+    initialDelaySeconds: 11
+    periodSeconds: 3
     timeoutSeconds: 3
     failureThreshold: 3
 
@@ -111,8 +113,6 @@ boundary:
     httpGet:
       path: "/"
       port: 9200
-
-
 
   serviceAccount:
     # Specifies whether a service account should be created
@@ -127,7 +127,6 @@ boundary:
 
   service:
     type: ClusterIP
-    name: boundary-controller
     ports:
     - name: api
       port: 9200
@@ -162,25 +161,27 @@ boundary:
       memory: "1Gi"  # 1 GiB of memory  
   
   worker:
+    # quick way to disable all workers and keep controller running
+    disableAll: false
     ingress:
-      enabled: false
+      enabled: true 
       replicas: 1
+      # adapted from: 
+      # https://developer.hashicorp.com/boundary/tutorials/enterprise/ent-deployment-guide#configure-boundary-workers
       config: |
         # disable memory from being swapped to disk
         disable_mlock = true
 
-        # listener denoting this is a worker proxy
+        # listener denoting this is a worker due to "proxy" purpose on 9202
         listener "tcp" {
           address = "0.0.0.0:9202"
           purpose = "proxy"
         }
 
-        # worker block for configuring the specifics of the
-        # worker service
         worker {
           name = "ingress-worker"
-          public_addr = "$HOSTNAME"
-          initial_upstreams = ["boundary-controller.default.svc.cluster.local:9201"]
+          initial_upstreams = ["boundary-controller:9201"]
+          public_addr = "ingress-worker:9202"
           tags {
             type = ["worker1", "upstream"]
           }
@@ -217,24 +218,206 @@ boundary:
           }
         }
 
-        # kms block for encrypting the authentication material
+        # kms authentication circuvents need to manually register workers with controller
+        # must match controller's worker-auth block exactly
         kms "aead" {
           purpose = "worker-auth"
           aead_type = "aes-gcm"
           key = "8fZBjCUfN0TzjEGLQldGY4+iE9AkOvCfjh7+p0GtRBQ="
           key_id = "global_worker-auth"
         }
+
+        # uncomment to encrypt worker-auth keys in storage:
+        # https://developer.hashicorp.com/boundary/tutorials/enterprise/ent-deployment-guide#prepare-worker-kms-keys
+        # kms "aead" {
+        #   purpose = "worker-auth-storage"
+        #   aead_type = "aes-gcm"
+        #   key = "8fZBjCUfN0TzjEGLQldGY4+iE9AkOvCfjh7+p0GtRBQ="
+        #   key_id = "global_worker-auth"
+        # }
+
+        # simple aead key to auth downstream workers with KMS auth flow:
+        # https://developer.hashicorp.com/boundary/docs/configuration/worker/worker-configuration#kms-led-authorization-authentication-flow
+        # corresponding block in workers must have the 'worker-auth' purpose, with all other values matching exactly
+        # generate aead key via 'openssl rand -base64 32'
+        kms "aead" {
+          purpose = "downstream-worker-auth"
+          aead_type = "aes-gcm"
+          key = "vAdHal5kv6LyEjEOcIhuVtEqYh78jwPgvizOUT+cSxs="
+          key_id = "intermediate-auth"
+        }
+
+        # if no intermediate desired, comment out above kms block and uncomment below
+        # this key can be used for direct egress worker auth to ingress
+        # also requires initial_upstreams to be uncommented in worker block of egress config below
+        # kms "aead" {
+        #   purpose = "downstream-worker-auth"
+        #   aead_type = "aes-gcm"
+        #   key = "pAR+CY9FI0+77ey12GQ0ShyUp8adGvUvEQn3V9Sw6mg="
+        #   key_id = "egress-auth"
+        # }
+
       service:
         type: ClusterIP
-        name: ingress-worker-svc
+        ports:
+        - name: sesssion-proxy
+          port: 9202
+    
+    intermediate:
+      enabled: true
+      replicas: 1
+      config: |
+        disable_mlock = true
+
+        listener "tcp" {
+          address = "0.0.0.0:9202"
+          purpose = "proxy"
+        }
+
+        worker {
+          name = "intermediate-worker"
+          public_addr = "intermediate-worker:9202"
+          initial_upstreams = ["ingress-worker:9202"]
+          tags {
+            type = ["worker2", "intermediate"]
+          }
+        }
+
+        events {
+          audit_enabled       = true
+          sysevents_enabled   = true
+          observations_enable = true
+          sink "stderr" {
+            name = "all-events"
+            description = "All events sent to stderr"
+            event_types = ["*"]
+            format = "cloudevents-json"
+          }
+          sink {
+            name = "file-sink"
+            description = "All events sent to a file"
+            event_types = ["*"]
+            format = "cloudevents-json"
+            file {
+              path = "/var/log/boundary"
+              file_name = "intermediate-worker.log"
+            }
+            audit_config {
+              audit_filter_overrides {
+                sensitive = "redact"
+                secret    = "redact"
+              }
+            }
+          }
+        }
+        
+        # needed to auth upstream
+        # all values except purpose must be identical else logs will show tls handshake error
+        kms "aead" {
+          purpose = "worker-auth"
+          aead_type = "aes-gcm"
+          key = "vAdHal5kv6LyEjEOcIhuVtEqYh78jwPgvizOUT+cSxs="
+          key_id = "intermediate-auth"
+        }
+
+        # uncomment to encrypt worker auth keys in storage
+        # kms "aead" {
+        #   purpose = "worker-auth-storage"
+        #   aead_type = "aes-gcm"
+        #   key = "vAdHal5kv6LyEjEOcIhuVtEqYh78jwPgvizOUT+cSxs="
+        #   key_id = "intermediate-auth"
+        # }
+
+        # needed to auth downstream worker
+        kms "aead" {
+          purpose = "downstream-worker-auth"
+          aead_type = "aes-gcm"
+          key = "pAR+CY9FI0+77ey12GQ0ShyUp8adGvUvEQn3V9Sw6mg="
+          key_id = "egress-auth"
+        }
+
+      service:
+        type: ClusterIP
         ports:
         - name: sesssion-proxy
           port: 9202
 
+    egress:
+      enabled: true
+      replicas: 1
+      config: |
+        disable_mlock = true
+
+        listener "tcp" {
+          address = "0.0.0.0:9202"
+          purpose = "proxy"
+        }
+
+        # uncomment/comment-out initial upstreams if opting for no intermediate worker
+        worker {
+          name = "egress-worker"
+          public_addr = "egress-worker:9202"
+          initial_upstreams = ["intermediate-worker:9202"]
+          # initial upstreams = ["ingress-worker:9202"]
+          tags {
+            type = ["worker3", "egress"]
+          }
+        }
+
+        events {
+          audit_enabled       = true
+          sysevents_enabled   = true
+          observations_enable = true
+          sink "stderr" {
+            name = "all-events"
+            description = "All events sent to stderr"
+            event_types = ["*"]
+            format = "cloudevents-json"
+          }
+          sink {
+            name = "file-sink"
+            description = "All events sent to a file"
+            event_types = ["*"]
+            format = "cloudevents-json"
+            file {
+              path = "/var/log/boundary"
+              file_name = "egress-worker.log"
+            }
+            audit_config {
+              audit_filter_overrides {
+                sensitive = "redact"
+                secret    = "redact"
+              }
+            }
+          }
+        }
+
+        kms "aead" {
+          purpose = "worker-auth"
+          aead_type = "aes-gcm"
+          key = "pAR+CY9FI0+77ey12GQ0ShyUp8adGvUvEQn3V9Sw6mg="
+          key_id = "egress-auth"
+        }
+      
+        # note the key must match the worker-auth key
+        # kms "aead" {
+        #   purpose = "worker-auth-storage"
+        #   aead_type = "aes-gcm"
+        #   key = "pAR+CY9FI0+77ey12GQ0ShyUp8adGvUvEQn3V9Sw6mg="
+        #   key_id = "egress-auth"
+        # }
+      service:
+        type: ClusterIP
+        ports:
+        - name: sesssion-proxy
+          port: 9202
+
+target:
+  # alpine deployment with ssh and psql for inspecting controller postgres db
+  ssh:
+    enabled: true
 
 postgres:
-  name: postgres-boundary
-  port: 5432
   pvc:
     # init with "true" to test db migration with helm update of config
     enabled: false

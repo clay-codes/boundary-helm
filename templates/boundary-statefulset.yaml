@@ -5,8 +5,8 @@ metadata:
   labels:
     app: boundary-controller
 spec:
-  serviceName: {{ .Values.boundary.service.name }}
-  replicas: 1
+  serviceName: boundary-controller
+  replicas: {{ .Values.boundary.replicas }}
   selector:
     matchLabels:
       app: boundary-controller
@@ -26,6 +26,18 @@ spec:
       {{- if not .Values.boundary.setup.dev}}
       initContainers:
       - name: boundary-init
+        env:
+        - name: BOUNDARY_PG_URL
+          value: "postgresql://{{ .Values.postgres.env.postgresUsr }}:{{ .Values.postgres.env.postgresPswd }}@postgres-boundary:5432/boundary?sslmode=disable"
+        - name: HOSTNAME
+          value: "boundary"
+        {{ if .Values.boundary.image.licenseSecretName }}
+        - name: BOUNDARY_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ default "boundary-license" .Values.boundary.image.licenseSecretName }}
+              key: {{ default "license" .Values.boundary.image.licenseSecretKey }}
+        {{ end }}
         {{ if .Values.boundary.image.licenseSecretName }}
         {{ if or (eq .Values.boundary.image.tag "latest") (hasSuffix "-ent" .Values.boundary.image.tag) }}
         image: "{{ .Values.boundary.image.repository }}-enterprise:{{ .Values.boundary.image.tag }}"
@@ -66,18 +78,6 @@ spec:
           mountPath: "/immutable-config/"
         - name: boundary-config
           mountPath: "/boundary"
-        env:
-        - name: BOUNDARY_PG_URL
-          value: "postgresql://{{ .Values.postgres.env.postgresUsr }}:{{ .Values.postgres.env.postgresPswd }}@{{ .Values.postgres.name }}:5432/boundary?sslmode=disable"
-        - name: HOSTNAME
-          value: "boundary"
-        {{ if .Values.boundary.image.licenseSecretName }}
-        - name: BOUNDARY_LICENSE
-          valueFrom:
-            secretKeyRef:
-              name: {{ default "boundary-license" .Values.boundary.image.licenseSecretName }}
-              key: {{ default "license" .Values.boundary.image.licenseSecretKey }}
-        {{ end }}
       {{- end }}
       containers:
       - name: boundary
@@ -93,7 +93,7 @@ spec:
         imagePullPolicy: {{ .Values.boundary.image.pullPolicy }}
         env:
         - name: BOUNDARY_PG_URL
-          value: "postgresql://{{ .Values.postgres.env.postgresUsr }}:{{ .Values.postgres.env.postgresPswd }}@{{ .Values.postgres.name }}:5432/{{ .Values.postgres.env.postgresDB }}?sslmode=disable"
+          value: "postgresql://{{ .Values.postgres.env.postgresUsr }}:{{ .Values.postgres.env.postgresPswd }}@postgres-boundary:5432/{{ .Values.postgres.env.postgresDB }}?sslmode=disable"
         - name: HOSTNAME
           value: "boundary"
         {{ if .Values.boundary.image.licenseSecretName }}

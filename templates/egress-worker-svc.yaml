@@ -1,14 +1,14 @@
-{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.ingress.enabled }}
+{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.egress.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: ingress-worker
+  name: egress-worker
   labels:
-    app: boundary-ingress-worker
+    app: boundary-egress-worker
 spec:
   type: {{ .Values.boundary.service.type }}
   selector: 
-    app: boundary-ingress-worker
+    app: boundary-egress-worker
   ports:
   {{- range .Values.boundary.worker.ingress.service.ports }}
   - name: {{ .name }}

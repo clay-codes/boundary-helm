@@ -1,5 +1,45 @@
 Boundary controller installed!
+{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.ingress.enabled }}
+Boundary ingress worker installed!
+{{- end }}
+{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.intermediate.enabled }}
+Boundary intermediate worker installed!
+{{- end}}
+{{- if and (not .Values.boundary.worker.disableAll) .Values.boundary.worker.egress.enabled }}
+Boundary egress worker installed!
+{{- end }}
+{{- if .Values.boundary.setup.withResources }}
 
+Running in non-dev with resources created. Print init container logs to get credentials:
+
+  kubectl logs boundary-controller-0 boundary-init
+
+{{- else }}
+
+
+Must setup org user and auth method to access boundary UI
+  
+then, run this port forward command, and navigate browser to http://127.0.0.1:9200
+
+kubectl --namespace {{ .Release.Namespace }} port-forward boundary-0 9200:9200
+{{- end }}
+{{- if .Values.target.ssh.enabled }}
+
+
+Alpine ssh target installed.
+This pod also has psql client for inspecting boundary postgres db.
+
+Here is example of use (-l flag sources ~/.profile):
+
+  k exec -ti ssh-target-0 -- sh -l
+    # show conneciton string alias (environment vars pre-saved)
+    ssh-target-0:/# alias psql0
+    > psql0='PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB'
+    
+    # run alias to connect to postgres instance (\dt lists tables in boundary db)
+    ssh-target-0:/# psql0
+    > boundary=# \dt
+{{- end }}
 {{- if .Values.boundary.ingress.enabled }}
 {{- range $host := .Values.boundary.ingress.hosts }}
   {{- range .paths }}
@@ -19,12 +59,6 @@ Boundary controller installed!
 {{- if .Values.boundary.setup.dev }}
 
 UI ready! port forward boundary pod @ 9200 and navigate browser to http://127.0.0.1:9200
-
-kubectl --namespace {{ .Release.Namespace }} port-forward boundary-0 9200:9200
-{{- else }}
-Must setup org user and auth method to access boundary UI
-  
-then, run this port forward command, and navigate browser to http://127.0.0.1:9200
 
 kubectl --namespace {{ .Release.Namespace }} port-forward boundary-0 9200:9200
 {{- end }}
