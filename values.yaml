@@ -134,6 +134,8 @@ boundary:
       port: 9201
     - name: data
       port: 9203
+    - name: client
+      port: 443
 
   ingress:
     enabled: false
@@ -162,7 +164,7 @@ boundary:
   
   worker:
     # quick way to disable all workers and keep controller running
-    disableAll: false
+    disableAll: true
     ingress:
       enabled: true 
       replicas: 1
@@ -413,9 +415,14 @@ boundary:
           port: 9202
 
 target:
-  # alpine deployment with ssh and psql for inspecting controller postgres db
+  # alpine sts with ssh and psql for inspecting controller postgres db
   ssh:
     enabled: true
+    ports:
+    - name: ssh
+      port: 22
+    - name: client
+      port: 443
 
 postgres:
   pvc:

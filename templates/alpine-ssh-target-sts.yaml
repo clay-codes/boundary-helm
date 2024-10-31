@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: ssh-target
+  name: ssh-host
   labels:
     app: ssh-target
 spec:
@@ -42,7 +42,7 @@ spec:
             /usr/sbin/sshd -D
         ports:
         - containerPort: 22
-          name: ssh
+        - containerPort: 443
         volumeMounts:
         - name: log-volume
           mountPath: /var/log/myapp

@@ -4,11 +4,13 @@ kind: Service
 metadata:
   name: ssh-target
 spec:
+  clusterIP: None
   selector:
     app: ssh-target
   ports:
-    - protocol: TCP
-      port: 22
-      targetPort: 22
-  type: ClusterIP
+  {{- range .Values.target.ssh.ports }}
+  - name: {{ .name }}
+    port: {{ .port }}
+    targetPort: {{ .port }}
+  {{- end }}
 {{- end }}

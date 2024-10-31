@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: egress-worker
+  name: worker-egress
   labels:
-    app: boundary-egress-worker
+    app: egress-worker
 spec:
   serviceName: egress-worker
   replicas: {{ .Values.boundary.worker.egress.replicas }}
   selector:
     matchLabels:
-      app: boundary-egress-worker
+      app: egress-worker
   template:
     metadata:
       labels:
-        app: boundary-egress-worker
+        app: egress-worker
       annotations:
       {{- toYaml .Values.boundary.podAnnotations | nindent 8 }} 
     spec:

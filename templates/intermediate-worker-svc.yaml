@@ -4,11 +4,12 @@ kind: Service
 metadata:
   name: intermediate-worker
   labels:
-    app: boundary-intermediate-worker
+    app: intermediate-worker
 spec:
+  clusterIP: None
   type: {{ .Values.boundary.service.type }}
   selector: 
-    app: boundary-intermediate-worker
+    app: intermediate-worker
   ports:
   {{- range .Values.boundary.worker.ingress.service.ports }}
   - name: {{ .name }}

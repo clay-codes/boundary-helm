@@ -6,6 +6,9 @@ metadata:
     app: boundary-controller
 spec:
   type: {{ .Values.boundary.service.type }}
+  {{- if eq .Values.boundary.service.type "ClusterIP" }}
+  clusterIP: None
+  {{- end }}
   selector: 
     app: boundary-controller
   ports:

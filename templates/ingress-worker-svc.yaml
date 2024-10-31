@@ -4,11 +4,12 @@ kind: Service
 metadata:
   name: ingress-worker
   labels:
-    app: boundary-ingress-worker
+    app: ingress-worker
 spec:
+  clusterIP: None
   type: {{ .Values.boundary.service.type }}
   selector: 
-    app: boundary-ingress-worker
+    app: ingress-worker
   ports:
   {{- range .Values.boundary.worker.ingress.service.ports }}
   - name: {{ .name }}

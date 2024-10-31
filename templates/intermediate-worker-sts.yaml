@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: intermediate-worker
+  name: worker-intermediate
   labels:
-    app: boundary-intermediate-worker
+    app: intermediate-worker
 spec:
   serviceName: intermediate-worker
   replicas: {{ .Values.boundary.worker.intermediate.replicas }}
   selector:
     matchLabels:
-      app: boundary-intermediate-worker
+      app: intermediate-worker
   template:
     metadata:
       labels:
-        app: boundary-intermediate-worker
+        app: intermediate-worker
       annotations:
       {{- toYaml .Values.boundary.podAnnotations | nindent 8 }} 
     spec:
