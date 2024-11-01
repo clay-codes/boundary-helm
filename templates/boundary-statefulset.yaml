@@ -120,6 +120,7 @@ spec:
         - containerPort: 9200
         - containerPort: 9201
         - containerPort: 9203
+        - containerPort: 443
         livenessProbe:
           {{- toYaml .Values.boundary.livenessProbe | nindent 10 }}
         readinessProbe:

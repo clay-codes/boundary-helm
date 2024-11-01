@@ -239,25 +239,25 @@ boundary:
         # }
 
         # simple aead key to auth downstream workers with KMS auth flow:
+        # generate aead key via 'openssl rand -base64 32'
         # https://developer.hashicorp.com/boundary/docs/configuration/worker/worker-configuration#kms-led-authorization-authentication-flow
         # corresponding block in workers must have the 'worker-auth' purpose, with all other values matching exactly
-        # generate aead key via 'openssl rand -base64 32'
         kms "aead" {
           purpose = "downstream-worker-auth"
           aead_type = "aes-gcm"
-          key = "vAdHal5kv6LyEjEOcIhuVtEqYh78jwPgvizOUT+cSxs="
-          key_id = "intermediate-auth"
+          key = "pAR+CY9FI0+77ey12GQ0ShyUp8adGvUvEQn3V9Sw6mg="
+          key_id = "egress-auth"
         }
 
-        # if no intermediate desired, comment out above kms block and uncomment below
-        # this key can be used for direct egress worker auth to ingress
+        # if intermediate desired, comment out above kms block and uncomment below
         # also requires initial_upstreams to be uncommented in worker block of egress config below
         # kms "aead" {
         #   purpose = "downstream-worker-auth"
         #   aead_type = "aes-gcm"
-        #   key = "pAR+CY9FI0+77ey12GQ0ShyUp8adGvUvEQn3V9Sw6mg="
-        #   key_id = "egress-auth"
+        #   key = "vAdHal5kv6LyEjEOcIhuVtEqYh78jwPgvizOUT+cSxs="
+        #   key_id = "intermediate-auth"
         # }
+
 
       service:
         type: ClusterIP
@@ -266,7 +266,7 @@ boundary:
           port: 9202
     
     intermediate:
-      enabled: true
+      enabled: false
       replicas: 1
       config: |
         disable_mlock = true
@@ -359,8 +359,8 @@ boundary:
         worker {
           name = "egress-worker"
           public_addr = "egress-worker:9202"
-          initial_upstreams = ["intermediate-worker:9202"]
-          # initial upstreams = ["ingress-worker:9202"]
+          # initial_upstreams = ["intermediate-worker:9202"]
+          initial upstreams = ["ingress-worker:9202"]
           tags {
             type = ["worker3", "egress"]
           }

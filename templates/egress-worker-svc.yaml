@@ -6,10 +6,8 @@ metadata:
   labels:
     app: egress-worker
 spec:
-  clusterIP: None
   type: {{ .Values.boundary.service.type }}
   selector: 
-    app: egress-worker
   ports:
   {{- range .Values.boundary.worker.ingress.service.ports }}
   - name: {{ .name }}

@@ -4,7 +4,6 @@ kind: Service
 metadata:
   name: ssh-target
 spec:
-  clusterIP: None
   selector:
     app: ssh-target
   ports:

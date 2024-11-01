@@ -6,7 +6,6 @@ metadata:
   labels:
     app: ingress-worker
 spec:
-  clusterIP: None
   type: {{ .Values.boundary.service.type }}
   selector: 
     app: ingress-worker

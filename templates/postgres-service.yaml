@@ -5,7 +5,6 @@ metadata:
   labels:
     app: postgres-boundary
 spec:
-  clusterIP: None
   selector:
     app: postgres-boundary
   ports:
