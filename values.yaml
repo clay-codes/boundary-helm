@@ -19,7 +19,7 @@ boundary:
   
   setup:
     # dev mode creates root user "admin" with password "password"; run "boundary authenticate" to login
-    # defaults to true for quick poc; set to false to allow for below 
+    # set to false to allow for below 
     dev: false
     
     # migrateDB is used only after initialization if you wish to update the config
@@ -164,7 +164,7 @@ boundary:
   
   worker:
     # quick way to disable all workers and keep controller running
-    disableAll: true
+    disableAll: false
     ingress:
       enabled: true 
       replicas: 1
@@ -355,12 +355,12 @@ boundary:
           purpose = "proxy"
         }
 
-        # uncomment/comment-out initial upstreams if opting for no intermediate worker
+        # uncomment and comment-out initial upstreams if opting for no intermediate worker
         worker {
           name = "egress-worker"
           public_addr = "egress-worker:9202"
           # initial_upstreams = ["intermediate-worker:9202"]
-          initial upstreams = ["ingress-worker:9202"]
+          initial_upstreams = ["ingress-worker:9202"]
           tags {
             type = ["worker3", "egress"]
           }
@@ -393,6 +393,7 @@ boundary:
             }
           }
         }
+
 
         kms "aead" {
           purpose = "worker-auth"
